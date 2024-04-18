@@ -1,8 +1,7 @@
 version: "3.6"
 
 services:
-
-#### KAFKA
+  #### KAFKA
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.4
     hostname: zookeeper
@@ -27,7 +26,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://192.168.65.1:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://${EXTERNAL_IP}:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -53,17 +52,17 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
     networks:
       - todo
-      
-## BD: CASSANSDRA
+
+  ## BD: CASSANSDRA
 
   cassandra1:
     image: cassandra:3.11.3
     container_name: cassandra1
     hostname: cassandra1
-    networks: 
+    networks:
       - todo
     ports:
-      - '9042:9042'
+      - "9042:9042"
     environment: &environment
       MAX_HEAP_SIZE: 256M
       HEAP_NEWSIZE: 128M
@@ -77,7 +76,14 @@ services:
       CASSANDRA_RACK: Rack1
       CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
     healthcheck:
-      test: ["CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces"]
+      test:
+        [
+          "CMD",
+          "cqlsh",
+          "-u cassandra",
+          "-p cassandra",
+          "-e describe keyspaces",
+        ]
       interval: 15s
       timeout: 10s
       retries: 8
@@ -86,13 +92,20 @@ services:
     image: cassandra:3.11.3
     container_name: cassandra2
     hostname: cassandra2
-    networks: 
+    networks:
       - todo
     ports:
-      - '9043:9042'
+      - "9043:9042"
     environment: *environment
     healthcheck:
-      test: ["CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces"]
+      test:
+        [
+          "CMD",
+          "cqlsh",
+          "-u cassandra",
+          "-p cassandra",
+          "-e describe keyspaces",
+        ]
       interval: 15s
       timeout: 10s
       retries: 8
@@ -101,17 +114,24 @@ services:
     image: cassandra:3.11.3
     container_name: cassandra3
     hostname: cassandra3
-    networks: 
+    networks:
       - todo
     ports:
-      - '9044:9042'
+      - "9044:9042"
     environment: *environment
     healthcheck:
-      test: ["CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces"]
+      test:
+        [
+          "CMD",
+          "cqlsh",
+          "-u cassandra",
+          "-p cassandra",
+          "-e describe keyspaces",
+        ]
       interval: 15s
       timeout: 10s
       retries: 8
-      
+
   cassandra-init:
     image: cassandra:3.11.3
     container_name: cassandra-init
@@ -129,11 +149,12 @@ services:
     command: /bin/bash -c "echo loading cassandra keyspace && cqlsh cassandra1 -u cassandra -p cassandra -f /cassandra-setup.cql"
 
   cassandra-web:
+    platform: linux/amd64
     build: ./
     image: dcagatay/cassandra-web:latest
     container_name: cassandra-web
     networks:
-      - todo 
+      - todo
     depends_on:
       cassandra1:
         condition: service_healthy
@@ -144,13 +165,13 @@ services:
     ports:
       - 4000:3000
     environment:
-      CASSANDRA_HOST_IPS: 192.168.65.1
+      CASSANDRA_HOST_IPS: ${EXTERNAL_IP}
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASSWORD: cassandra
     restart: unless-stopped
 
-## VISUALIZADOR: GRAFANA
+  ## VISUALIZADOR: GRAFANA
 
   grafana:
     image: grafana:latest
@@ -169,7 +190,7 @@ services:
       interval: 10s
       retries: 30
 
-## PROCESADO: SPARK-CLUSTER
+  ## PROCESADO: SPARK-CLUSTER
 
   master:
     image: hadoop-spark-master
@@ -241,10 +262,11 @@ services:
     networks:
       - todo
 
-## JUPYTER en puerto 443
+  ## JUPYTER en puerto 443
 
   jupyter:
     image: hadoop-spark-jupyter:latest
+    platform: linux/amd64
     hostname: jupyter
     container_name: jupyter
     depends_on:
@@ -253,9 +275,9 @@ services:
       - worker2
       - history
     ports:
-        - "443:8888"
+      - "443:8888"
     volumes:
-        - ./jupyter/notebook:/home/jupyter
+      - ./jupyter/notebook:/home/jupyter/notebook
     networks:
       - todo
 
@@ -270,5 +292,3 @@ volumes:
   namenode:
   datanode1:
   datanode2:
-
-
